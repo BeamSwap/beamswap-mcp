@@ -1,0 +1,54 @@
+{
+  "name": "@beamswap/mcp",
+  "version": "0.1.0",
+  "description": "Connect your AI to Base token data, portfolios, swap routes, alerts and distributions with Beamswap.",
+  "license": "MIT",
+  "author": "flisko",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BeamSwap/beamswap-mcp.git"
+  },
+  "homepage": "https://docs.beamswap.io/",
+  "bugs": {
+    "url": "https://github.com/BeamSwap/beamswap-mcp/issues"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "type": "module",
+  "bin": {
+    "beamswap-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "docs"
+  ],
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/index.js --banner:js=\"#!/usr/bin/env node\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "smoke": "node scripts/protocol-smoke.mjs",
+    "check": "pnpm typecheck && pnpm test && pnpm build && pnpm smoke",
+    "prepack": "pnpm build",
+    "prepublishOnly": "pnpm check"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "@x402/evm": "2.25.0",
+    "@x402/fetch": "2.25.0",
+    "viem": "2.56.3",
+    "zod": "4.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.9.3",
+    "vitest": "^3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
