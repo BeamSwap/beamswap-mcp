@@ -42,7 +42,7 @@ This runs the local server's payment model. A tunnel does not add browser paymen
 
 ## Self-hosted
 
-The hosted implementation and approval frontend are in [beamswap-app-base](https://github.com/BeamSwap/beamswap-app-base). Deploy both with Postgres and your own HTTPS configuration using its hosted MCP runbook. Self-hosting the stdio package alone does not create an HTTP endpoint.
+The hosted implementation and approval frontend are in [beamswap-app-base](https://github.com/BeamSwap/beamswap-app-base). Deploy both with Postgres and your own HTTPS configuration using its hosted MCP runbook. This release pins hosted payments to Beamswap's Base USDC treasury; a different recipient requires a reviewed payment-policy change in both server and browser. Self-hosting the stdio package alone does not create an HTTP endpoint.
 
 Do not expose a shared, auto-paying private-key process as an unauthenticated public service. Use the hosted request-approval implementation or an authenticated private deployment.
 
