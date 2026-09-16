@@ -4,7 +4,7 @@ The standalone repository is the public source of truth. The app repository reta
 
 ## Provenance
 
-Initial source was extracted from `BeamSwap/beamswap-app-base` commit `4b6af23`, `packages/mcp`, with `packages/shared/src/agent-session.ts` copied to `src/session.ts`. The only client import change makes that helper local. Keep the session domain, fields and Base chain ID compatible with the API verifier.
+Initial source was extracted from `BeamSwap/beamswap-app-base` commit `4b6af23`, `packages/mcp`, with `packages/shared/src/agent-session.ts` copied to `src/session.ts`. The standalone review then added strict per-tool payment policy and persistent uncertain-payment recovery. Keep the session domain, fields and Base chain ID compatible with the API verifier.
 
 Runtime dependencies are pinned to the versions used by the launch implementation. Update them in a separately reviewed change. The lockfile records the full dependency graph.
 

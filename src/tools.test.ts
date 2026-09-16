@@ -323,7 +323,7 @@ describe('mcp tools', () => {
       arguments: { address: '0xe598c65f960a8c39b539f31cabf2c28f1567fd54' },
     })
     expect(out.isError).toBe(true)
-    expect(JSON.parse(textOf(out)).hint).toContain('could not settle')
+    expect(JSON.parse(textOf(out)).hint).toContain('No payment was signed')
   })
 
   it('watch_create posts items, days and the webhook URL and returns the body as text', async () => {

@@ -15,13 +15,24 @@ Server URL: `https://api.beamswap.io/mcp`. Transport: **Streamable HTTP**. Conne
 
 After a tool prepares an approval request, open its Beamswap approval link, inspect the requested action and price, then approve or decline. Ask your AI to retrieve the result with the returned status capability. Keep these links and capabilities private: they identify your request and its result.
 
-The hosted and local tool lists can differ. Ask your client to list available tools before requesting a workflow. A prepared swap route does not execute a swap; a created distribution does not fund or open claims.
+### Available tools
+
+| Tools | Hosted | Local |
+| --- | --- | --- |
+| `token_info`, `portfolio`, `swap_quote`, `swap_route`, `distribution_proof` | Browser approval and price/quota check | Automatic payment when a wallet is configured |
+| `watch_get`, `distribution_get` | Free | Free |
+| `watch_delete` | Explicit browser approval, free | Free tool call |
+| `approval_status` | Retrieve an approved request's result | Not needed |
+| `session_create` | Wallet sign-in happens in the browser | Free wallet signature |
+| `watch_create`, `distribution_create` | Not available in this release | Available; paid |
+
+Hosted exposes nine tools; local exposes eleven. Use the website or local/API setup to create distributions, and local/API setup to create watches. A prepared swap route does not execute a swap; a created distribution does not fund or open claims.
 
 ## Local
 
-Use the [source setup](../README.md#run-the-local-server). Stdio means your AI client starts the program and exchanges messages with it locally. `https://api.beamswap.io` is the API the program calls, not a substitute for the remote MCP URL.
+Use the [npm or source setup](../README.md#run-the-local-server). Stdio means your AI client starts the program and exchanges messages with it locally. `https://api.beamswap.io` is the API the program calls, not a substitute for the remote MCP URL.
 
-Without a wallet key, connection and free tools still work. With a key, the server can automatically pay up to $50 for each API request. This does not impose a session or daily budget. Limit the separate wallet's balance and configure the client's tool confirmations.
+Without a wallet key, connection and free tools still work. With a key, the server automatically pays within each tool's list-price ceiling, up to $50 for distribution creation. Only Base USDC payments to the configured treasury are allowed. This does not impose a session or daily budget. Limit the separate wallet's balance and configure the client's tool confirmations. [Uncertain payments block further payments](payment-recovery.md) until the owner checks the outcome.
 
 ## Private tunnel
 

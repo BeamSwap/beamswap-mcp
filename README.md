@@ -8,7 +8,17 @@ This repository contains the **local stdio server**. The hosted server lives in 
 
 ## Run the local server
 
-Install [Node.js](https://nodejs.org/) 22.13 or newer, Git and pnpm 10, then:
+Install [Node.js](https://nodejs.org/) 22.13 or newer. The npm release runs without cloning:
+
+```sh
+npx -y @beamswap/mcp@0.1.0
+```
+
+Set your AI client's command to `npx` and arguments to `["-y", "@beamswap/mcp@0.1.0"]`. Pinning the version keeps updates deliberate. On Windows, clients that require an executable may need `npx.cmd`; the source-based `node` command below also works.
+
+### Build from source
+
+For source control or local changes, install Git and pnpm 10, then:
 
 ```sh
 git clone https://github.com/BeamSwap/beamswap-mcp.git
@@ -19,34 +29,35 @@ pnpm build
 
 Set your AI client's server command to `node`, with the **absolute path** to `dist/index.js` as its argument. The client starts the server. Running it directly leaves it waiting for MCP messages on stdin, which is normal.
 
-The public GitHub source is available. The npm name `@beamswap/mcp` is reserved in package metadata but was not available from the public registry at the 16 September 2026 check. Use the source instructions above until a release is announced.
-
 ### Connect before adding a wallet
 
 ```json
 {
   "mcpServers": {
     "beamswap": {
-      "command": "node",
-      "args": ["/absolute/path/to/beamswap-mcp/dist/index.js"]
+      "command": "npx",
+      "args": ["-y", "@beamswap/mcp@0.1.0"]
     }
   }
 }
 ```
 
-On Windows, use a path such as `C:/Users/you/beamswap-mcp/dist/index.js`. Merge the `beamswap` entry with your existing servers. After restarting the client, ask it to list the Beamswap tools. Listing tools is free and does not require a wallet.
+For a source build, use command `node` and an absolute argument such as `C:/Users/you/beamswap-mcp/dist/index.js`. Merge the `beamswap` entry with your existing servers. After restarting the client, ask it to list the Beamswap tools. Listing tools is free and does not require a wallet.
 
 ## Payments in local mode
 
 For paid calls, configure `BEAMSWAP_WALLET_KEY` in your local client's environment settings. Use a **separate wallet with a small USDC balance on Base**. Never paste a private key into a chat, prompt, issue or shared config.
 
-The local server automatically signs API payments when a key is configured. Its $50 limit is **per payment**, not a daily or total budget. Your AI client's approval controls are separate. Hosted mode instead asks you to approve requests in your browser.
+The local server automatically signs API payments when a key is configured. Each tool is capped at its list price below; monitoring is capped at $0.01 per item per day. Only Base USDC EIP-3009 payments to the configured treasury are allowed. Free tools cannot charge. These limits are **per payment**, not a daily or total budget. Your AI client's approval controls are separate. Hosted mode instead asks you to approve requests in your browser.
 
 | Setting | Purpose |
 | --- | --- |
 | `BEAMSWAP_WALLET_KEY` | Optional for connection/free lookups; required for local paid calls and wallet sign-in. |
 | `BEAMSWAP_API_URL` | Defaults to `https://api.beamswap.io`. Change only to an API you trust. |
 | `BEAMSWAP_SESSION_TOKEN` | Optional existing wallet session. `session_create` can create one and retain it in process memory. |
+| `BEAMSWAP_PAYMENT_TREASURY` | Advanced self-hosting only. Defaults to Beamswap's treasury. Changing the API URL does not change this payment recipient. |
+
+If a signed request times out, returns an error or lacks a valid receipt, the tool returns `paymentOutcomeUnknown`, `doNotRetry` and a recovery ID. Further paid calls for that wallet are blocked across restarts. See [payment recovery](docs/payment-recovery.md) before taking any action. Never ask the AI to create a replacement for an uncertain request.
 
 The API charges USDC. The facilitator pays gas for API settlements. Sending swap, staking, funding or claim transactions separately requires ETH on Base. This server returns transaction instructions and **does not broadcast those transactions**.
 

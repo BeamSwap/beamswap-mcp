@@ -21,6 +21,7 @@ function json(payload: unknown, isError = false) {
  * the literal `null` it decodes to.
  */
 function result(r: ApiResponse, hasWallet: boolean) {
+  if (r.paymentOutcomeUnknown) return json(r.body, true)
   if (r.status >= 400) {
     const payload: { status: number; error: unknown; hint?: string } = {
       status: r.status,
@@ -28,7 +29,7 @@ function result(r: ApiResponse, hasWallet: boolean) {
     }
     if (r.status === 402) {
       payload.hint = hasWallet
-        ? 'The call was not paid for: the BEAMSWAP_WALLET_KEY wallet could not settle. Check its USDC balance on Base.'
+        ? 'No payment was signed for this response. The endpoint requires a supported, policy-approved Base USDC payment.'
         : 'BEAMSWAP_WALLET_KEY is not set, so the call was never paid for. Set it to the 0x private key of a wallet holding USDC on Base.'
     }
     return json(payload, true)
