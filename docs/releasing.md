@@ -20,3 +20,7 @@ Runtime dependencies are pinned to the versions used by the launch implementatio
 8. Verify the public registry version and executable before changing guides to an `npx @beamswapio/mcp` command.
 
 There is deliberately no automatic npm-publish workflow. CI on Windows and Linux builds and checks the package without release credentials.
+
+## Staged updates
+
+The first `@beamswapio/mcp@0.1.0` release is public. For future authorized releases, prefer [npm staged publishing](https://docs.npmjs.com/staged-publishing/): use npm 11.15 or newer with Node 22.14 or newer, stage the checked tarball with `npm stage publish`, inspect it, then complete the owner's 2FA approval on npm. Staging alone does not make a version public. Verify the approved registry artifact before updating installation guides.
