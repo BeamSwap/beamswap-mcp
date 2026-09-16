@@ -8,7 +8,7 @@ This repository contains the **local stdio server**. The hosted server lives in 
 
 ## Run the local server
 
-Use the source setup below. The npm release is pending registry publishing access; `@beamswap/mcp` is not available on npm yet.
+Use the source setup below. The first `@beamswapio/mcp` npm release is being prepared under the Beamswap npm account.
 
 ### Build from source
 

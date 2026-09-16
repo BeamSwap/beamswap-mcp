@@ -10,13 +10,13 @@ Runtime dependencies are pinned to the versions used by the launch implementatio
 
 ## Before publishing
 
-1. Confirm the intended npm account owns the `@beamswap` scope and the version is unused.
+1. Confirm the intended npm account owns the `@beamswapio` scope and the version is unused.
 2. Run `pnpm install --frozen-lockfile`, `pnpm check` and `npm pack --dry-run`.
 3. Inspect the tarball: bundle, license, README and public guides only. No credentials, tests, ledger, node_modules or environment files.
 4. Test the installed tarball through MCP initialization, tools/list and a free mocked call. Do not require a funded wallet in CI.
 5. Review the source diff and provider docs. Verify the hosted endpoint before describing it as live.
 6. Confirm every new commit is authored and committed as `flisko`, with no co-author trailer.
 7. Obtain the owner's explicit npm-release authorization. Then publish the exact checked package with public access and provenance where supported.
-8. Verify the public registry version and executable before changing guides to an `npx @beamswap/mcp` command.
+8. Verify the public registry version and executable before changing guides to an `npx @beamswapio/mcp` command.
 
 There is deliberately no automatic npm-publish workflow. CI on Windows and Linux builds and checks the package without release credentials.

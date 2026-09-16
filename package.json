@@ -1,5 +1,5 @@
 {
-  "name": "@beamswap/mcp",
+  "name": "@beamswapio/mcp",
   "version": "0.1.0",
   "description": "Connect your AI to Base token data, portfolios, swap routes, alerts and distributions with Beamswap.",
   "license": "MIT",
