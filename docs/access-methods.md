@@ -30,7 +30,7 @@ Hosted exposes nine tools; local exposes eleven. Use the website or local/API se
 
 ## Local
 
-Use the [source setup](../README.md#run-the-local-server). Stdio means your AI client starts the program and exchanges messages with it locally. `https://api.beamswap.io` is the API the program calls, not a substitute for the remote MCP URL.
+Use the [npm or source setup](../README.md#run-the-local-server). Stdio means your AI client starts the program and exchanges messages with it locally. `https://api.beamswap.io` is the API the program calls, not a substitute for the remote MCP URL.
 
 Without a wallet key, connection and free tools still work. With a key, the server automatically pays within each tool's list-price ceiling, up to $50 for distribution creation. Only Base USDC payments to the configured treasury are allowed. This does not impose a session or daily budget. Limit the separate wallet's balance and configure the client's tool confirmations. [Uncertain payments block further payments](payment-recovery.md) until the owner checks the outcome.
 

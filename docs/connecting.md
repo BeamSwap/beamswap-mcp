@@ -1,6 +1,6 @@
 # Connect your AI
 
-Choose [hosted or local mode](access-methods.md) first. Hosted mode uses `https://api.beamswap.io/mcp` and asks for wallet approval in the browser. Local mode uses the [source build](../README.md#run-the-local-server).
+Choose [hosted or local mode](access-methods.md) first. Hosted mode uses `https://api.beamswap.io/mcp` and asks for wallet approval in the browser. Local mode uses the [npm package or source build](../README.md#run-the-local-server). Wherever this guide shows `node /absolute/path/to/beamswap-mcp/dist/index.js`, you can use `npx -y @beamswapio/mcp@0.1.0` for the packaged server instead.
 
 Provider menus and plan access can change. These instructions were checked against official documentation on 16 September 2026. Protocol tests do not mean every provider account or plan has been tested.
 

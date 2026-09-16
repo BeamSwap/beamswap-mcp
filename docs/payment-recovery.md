@@ -14,11 +14,11 @@ The record contains a random ID, timestamp, API origin and hashed request finger
 4. After reconciling both payment and operation, inspect and clear the matching lock manually in a terminal. Use the same locally configured wallet environment, never a key on the command line.
 
 ```sh
-node /absolute/path/to/beamswap-mcp/dist/index.js --payment-recovery-status
-node /absolute/path/to/beamswap-mcp/dist/index.js --clear-payment-recovery RECOVERY_ID --checked-payment-and-operation
+npx -y @beamswapio/mcp@0.1.0 --payment-recovery-status
+npx -y @beamswapio/mcp@0.1.0 --clear-payment-recovery RECOVERY_ID --checked-payment-and-operation
 ```
 
-Replace the example path with the same built server used by your AI client.
+For source builds, replace `npx -y @beamswapio/mcp@0.1.0` with `node /absolute/path/to/dist/index.js`.
 
 Clearing a lock does not refund, cancel or retry anything. It enables future paid requests. This command is deliberately not an MCP tool the AI can call automatically.
 

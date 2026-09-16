@@ -8,11 +8,17 @@ This repository contains the **local stdio server**. The hosted server lives in 
 
 ## Run the local server
 
-Use the source setup below. The first `@beamswapio/mcp` npm release is being prepared under the Beamswap npm account.
+Install [Node.js](https://nodejs.org/) 22.13 or newer. The npm release runs without cloning:
+
+```sh
+npx -y @beamswapio/mcp@0.1.0
+```
+
+Set your AI client's command to `npx` and arguments to `["-y", "@beamswapio/mcp@0.1.0"]`. Pinning the version keeps updates deliberate. On Windows, clients that require an executable may need `npx.cmd`; the source-based `node` command below also works.
 
 ### Build from source
 
-Install [Node.js](https://nodejs.org/) 22.13 or newer, Git and pnpm 10, then:
+For source control or local changes, install Git and pnpm 10, then:
 
 ```sh
 git clone https://github.com/BeamSwap/beamswap-mcp.git
@@ -29,14 +35,14 @@ Set your AI client's server command to `node`, with the **absolute path** to `di
 {
   "mcpServers": {
     "beamswap": {
-      "command": "node",
-      "args": ["/absolute/path/to/beamswap-mcp/dist/index.js"]
+      "command": "npx",
+      "args": ["-y", "@beamswapio/mcp@0.1.0"]
     }
   }
 }
 ```
 
-Replace the example path with your built file, such as `C:/Users/you/beamswap-mcp/dist/index.js` on Windows. Merge the `beamswap` entry with your existing servers. After restarting the client, ask it to list the Beamswap tools. Listing tools is free and does not require a wallet.
+For a source build, use command `node` and an absolute argument such as `C:/Users/you/beamswap-mcp/dist/index.js`. Merge the `beamswap` entry with your existing servers. After restarting the client, ask it to list the Beamswap tools. Listing tools is free and does not require a wallet.
 
 ## Payments in local mode
 
