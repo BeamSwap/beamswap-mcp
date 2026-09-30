@@ -25,14 +25,21 @@ After a tool prepares an approval request, open its Beamswap approval link, insp
 | `approval_status` | Retrieve an approved request's result | Not needed |
 | `session_create` | Wallet sign-in happens in the browser | Free wallet signature |
 | `watch_create`, `distribution_create` | Not available in this release | Available; paid |
+| `spending_status`, `spending_pause` | Not available in this release | Free; signed with the configured wallet session |
+| `limit_order_prepare`, `order_status`, `automation_preview`, `crosschain_quote`, `crosschain_status` | Not available in this release | Free; review links only, you sign in your own wallet |
+| `vault_status`, `vault_trade`, `vault_limit_order`, `vault_cancel`, `vault_pause`, `vault_activity` | Not available in this release | Added when `BEAMSWAP_VAULT_URL` is set |
 
-Hosted exposes nine tools; local exposes eleven. Use the website or local/API setup to create distributions, and local/API setup to create watches. A prepared swap route does not execute a swap; a created distribution does not fund or open claims.
+Hosted exposes nine tools; local exposes eighteen, plus six vault tools when `BEAMSWAP_VAULT_URL` is set. Use the website or local/API setup to create distributions, and local/API setup to create watches. A prepared swap route does not execute a swap; a created distribution does not fund or open claims.
 
 ## Local
 
 Use the [npm or source setup](../README.md#run-the-local-server). Stdio means your AI client starts the program and exchanges messages with it locally. `https://api.beamswap.io` is the API the program calls, not a substitute for the remote MCP URL.
 
 Without a wallet key, connection and free tools still work. With a key, the server automatically pays within each tool's list-price ceiling, up to $50 for distribution creation. Only Base USDC payments to the configured treasury are allowed. This does not impose a session or daily budget. Limit the separate wallet's balance and configure the client's tool confirmations. [Uncertain payments block further payments](payment-recovery.md) until the owner checks the outcome.
+
+### Agent Vault
+
+Set `BEAMSWAP_VAULT_URL` to the private vault link from [app.beamswap.io/agent](https://app.beamswap.io/agent) to add the vault tools. The hosted vault endpoint also accepts the capability as an `Authorization: Bearer` header. Vault tools trade inside the on-chain limits the owner set and never withdraw, change rules or resume a paused vault. Keep the link private.
 
 ## Private tunnel
 

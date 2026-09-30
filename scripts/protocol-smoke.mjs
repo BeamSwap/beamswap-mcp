@@ -27,7 +27,7 @@ const client = new Client({ name: 'beamswap-package-check', version: '1.0.0' })
 try {
   await client.connect(transport)
   const { tools } = await client.listTools()
-  assert.equal(tools.length, 11)
+  assert.equal(tools.length, 18)
   assert(tools.some((tool) => tool.name === 'session_create'))
   assert(tools.some((tool) => tool.name === 'distribution_create'))
   const result = await client.callTool({
@@ -35,7 +35,7 @@ try {
   })
   assert.equal(result.isError, true)
   assert.deepEqual(requests, [{ method: 'GET', path: '/v1/distribution/protocol-smoke' }])
-  console.log('Protocol smoke passed: 11 tools and one free mock request. No wallet or mainnet call.')
+  console.log('Protocol smoke passed: 18 tools and one free mock request. No wallet or mainnet call.')
 } finally {
   await client.close()
   await new Promise((resolve) => api.close(resolve))

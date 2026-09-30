@@ -11,10 +11,10 @@ This repository contains the **local stdio server**. The hosted server lives in 
 Install [Node.js](https://nodejs.org/) 22.13 or newer. The npm release runs without cloning:
 
 ```sh
-npx -y @beamswapio/mcp@0.1.0
+npx -y @beamswapio/mcp@0.2.0
 ```
 
-Set your AI client's command to `npx` and arguments to `["-y", "@beamswapio/mcp@0.1.0"]`. Pinning the version keeps updates deliberate. On Windows, clients that require an executable may need `npx.cmd`; the source-based `node` command below also works.
+Set your AI client's command to `npx` and arguments to `["-y", "@beamswapio/mcp@0.2.0"]`. Pinning the version keeps updates deliberate. On Windows, clients that require an executable may need `npx.cmd`; the source-based `node` command below also works.
 
 ### Build from source
 
@@ -36,7 +36,7 @@ Set your AI client's server command to `node`, with the **absolute path** to `di
   "mcpServers": {
     "beamswap": {
       "command": "npx",
-      "args": ["-y", "@beamswapio/mcp@0.1.0"]
+      "args": ["-y", "@beamswapio/mcp@0.2.0"]
     }
   }
 }
@@ -55,6 +55,8 @@ The local server automatically signs API payments when a key is configured. Each
 | `BEAMSWAP_WALLET_KEY` | Optional for connection/free lookups; required for local paid calls and wallet sign-in. |
 | `BEAMSWAP_API_URL` | Defaults to `https://api.beamswap.io`. Change only to an API you trust. |
 | `BEAMSWAP_SESSION_TOKEN` | Optional existing wallet session. `session_create` can create one and retain it in process memory. |
+| `BEAMSWAP_TASK` | Optional task label (1 to 64 letters, digits, spaces or . _ : -) sent as `x-beamswap-task`, so your task budgets and receipts on beamswap.io can tell this agent's work apart. |
+| `BEAMSWAP_VAULT_URL` | Optional private vault link from [app.beamswap.io/agent](https://app.beamswap.io/agent). Adds the six `vault_*` tools. Treat it as a secret. |
 | `BEAMSWAP_PAYMENT_TREASURY` | Advanced self-hosting only. Defaults to Beamswap's treasury. Changing the API URL does not change this payment recipient. |
 
 If a signed request times out, returns an error or lacks a valid receipt, the tool returns `paymentOutcomeUnknown`, `doNotRetry` and a recovery ID. Further paid calls for that wallet are blocked across restarts. See [payment recovery](docs/payment-recovery.md) before taking any action. Never ask the AI to create a replacement for an uncertain request.

@@ -1,11 +1,13 @@
 /**
- * `beamswap-mcp` — stdio MCP server for the Beamswap Agent API.
+ * `beamswap-mcp` - stdio MCP server for the Beamswap Agent API.
  *
  * Configuration is entirely environment-driven so the binary can be run straight from npx by a
  * desktop MCP host:
  *   BEAMSWAP_API_URL        base URL of the API (default https://api.beamswap.io)
  *   BEAMSWAP_WALLET_KEY     0x private key of the wallet that pays, USDC on Base
  *   BEAMSWAP_SESSION_TOKEN  optional session JWT, spends the staking-tier free quota first
+ *   BEAMSWAP_TASK           optional task label sent as x-beamswap-task (task budgets, receipts)
+ *   BEAMSWAP_VAULT_URL      optional private vault URL from the Beamswap dashboard; adds the six vault_* tools
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
@@ -14,6 +16,7 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { fileRecoveryStore } from './payment-recovery'
 import { createApiClient } from './client'
 import { registerTools } from './tools'
+import { createVaultRemote, registerVaultTools } from './vault'
 
 const recoveryStore = fileRecoveryStore()
 if (
@@ -43,8 +46,14 @@ const api = createApiClient({
   sessionToken: process.env.BEAMSWAP_SESSION_TOKEN,
   treasury: process.env.BEAMSWAP_PAYMENT_TREASURY,
   recoveryStore,
+  task: process.env.BEAMSWAP_TASK,
 })
 
-const server = new McpServer({ name: 'beamswap', version: '0.1.0' })
+const server = new McpServer({ name: 'beamswap', version: '0.2.0' })
 registerTools(server, api)
+// The vault tools appear only when the owner configured the private vault URL. It is a secret:
+// a malformed value stops the server with a message that does not repeat it.
+if (process.env.BEAMSWAP_VAULT_URL) {
+  registerVaultTools(server, createVaultRemote(process.env.BEAMSWAP_VAULT_URL))
+}
 await server.connect(new StdioServerTransport())

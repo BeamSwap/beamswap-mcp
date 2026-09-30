@@ -46,11 +46,18 @@ describe('mcp tools', () => {
     const client = await connect(async () => Response.json({}))
     const { tools } = await client.listTools()
     expect(tools.map((t) => t.name).sort()).toEqual([
+      'automation_preview',
+      'crosschain_quote',
+      'crosschain_status',
       'distribution_create',
       'distribution_get',
       'distribution_proof',
+      'limit_order_prepare',
+      'order_status',
       'portfolio',
       'session_create',
+      'spending_pause',
+      'spending_status',
       'swap_quote',
       'swap_route',
       'token_info',
@@ -313,6 +320,7 @@ describe('mcp tools', () => {
     const api: ApiClient = {
       hasWallet: true,
       createSession: async () => ({ status: 200, body: {}, paymentTx: null }),
+      sessionCall: async () => ({ status: 200, body: {}, paymentTx: null }),
       get: async () => ({ status: 402, body: { accepts: [] }, paymentTx: null }),
       post: async () => ({ status: 402, body: { accepts: [] }, paymentTx: null }),
       del: async () => ({ status: 402, body: { accepts: [] }, paymentTx: null }),
@@ -423,5 +431,116 @@ describe('mcp tools', () => {
     )
     expect(out.isError).toBe(true)
     expect(JSON.parse(textOf(out))).toEqual({ status: 502, error: 'non-JSON response' })
+  })
+})
+
+describe('spending controls and the task label', () => {
+  const walletKey = `0x${'11'.repeat(32)}` as `0x${string}`
+
+  function recording(
+    respond: (url: string, calls: number) => Response = () => Response.json({ paused: false }),
+  ) {
+    const calls: Array<{ url: string; method: string; headers: Record<string, string> }> = []
+    const fetchImpl: typeof fetch = async (input, init) => {
+      const url = input instanceof Request ? input.url : String(input)
+      const headers =
+        input instanceof Request
+          ? Object.fromEntries(input.headers)
+          : ((init?.headers ?? {}) as Record<string, string>)
+      const method = input instanceof Request ? input.method : (init?.method ?? 'GET')
+      calls.push({ url, method, headers })
+      if (url.endsWith('/v1/session')) {
+        return Response.json({ token: `jwt-${calls.length}`, expiresAt: 2_000_000_000 })
+      }
+      return respond(url, calls.length)
+    }
+    return { calls, fetchImpl }
+  }
+
+  it('sends BEAMSWAP_TASK as x-beamswap-task on every request', async () => {
+    const { calls, fetchImpl } = recording(() => Response.json({ ok: true }))
+    const client = await connectApi(
+      createApiClient({ baseUrl: 'http://api', fetchImpl, task: ' weekly-report ' }),
+    )
+    await client.callTool({
+      name: 'swap_quote',
+      arguments: { sell: 'ETH', buy: 'ETH', amount: '1' },
+    })
+    expect(calls[0]?.headers).toMatchObject({ 'x-beamswap-task': 'weekly-report' })
+  })
+
+  it('sends no task header when none is configured', async () => {
+    const { calls, fetchImpl } = recording(() => Response.json({ ok: true }))
+    const client = await connectApi(createApiClient({ baseUrl: 'http://api', fetchImpl, task: '' }))
+    await client.callTool({
+      name: 'swap_quote',
+      arguments: { sell: 'ETH', buy: 'ETH', amount: '1' },
+    })
+    expect(calls[0]?.headers['x-beamswap-task']).toBeUndefined()
+  })
+
+  it('refuses an invalid task label at startup', () => {
+    expect(() => createApiClient({ baseUrl: 'http://api', fetchImpl: fetch, task: 'a/b' })).toThrow(
+      /BEAMSWAP_TASK/,
+    )
+    expect(() =>
+      createApiClient({ baseUrl: 'http://api', fetchImpl: fetch, task: 'x'.repeat(65) }),
+    ).toThrow(/BEAMSWAP_TASK/)
+  })
+
+  it('spending_status signs a session from the key and reads the controls', async () => {
+    const { calls, fetchImpl } = recording(() =>
+      Response.json({ paused: false, caps: { daily: '5000000', weekly: null, monthly: null } }),
+    )
+    const client = await connectApi(
+      createApiClient({ baseUrl: 'http://api', walletKey, fetchImpl }),
+    )
+    const out = await client.callTool({ name: 'spending_status', arguments: {} })
+    expect(out.isError).toBe(false)
+    expect(JSON.parse(textOf(out))).toMatchObject({ paused: false, caps: { daily: '5000000' } })
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual([
+      'POST http://api/v1/session',
+      'GET http://api/v1/account/spending',
+    ])
+    expect(calls[1]?.headers).toMatchObject({ authorization: 'Bearer jwt-1' })
+    expect(textOf(out)).not.toContain('jwt-1')
+  })
+
+  it('spending_pause posts the pause and renews an expired session once', async () => {
+    const { calls, fetchImpl } = recording((_url, n) =>
+      n === 1
+        ? Response.json({ error: 'sign in with your wallet first' }, { status: 401 })
+        : Response.json({ paused: true }),
+    )
+    const client = await connectApi(
+      createApiClient({ baseUrl: 'http://api', walletKey, sessionToken: 'stale', fetchImpl }),
+    )
+    const out = await client.callTool({ name: 'spending_pause', arguments: {} })
+    expect(JSON.parse(textOf(out))).toEqual({ paused: true })
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual([
+      'POST http://api/v1/account/spending/pause',
+      'POST http://api/v1/session',
+      'POST http://api/v1/account/spending/pause',
+    ])
+    expect(calls[0]?.headers).toMatchObject({ authorization: 'Bearer stale' })
+    expect(calls[2]?.headers).toMatchObject({ authorization: 'Bearer jwt-2' })
+  })
+
+  it('explains what to configure when there is no key or session', async () => {
+    const { calls, fetchImpl } = recording()
+    const client = await connectApi(createApiClient({ baseUrl: 'http://api', fetchImpl }))
+    const out = await client.callTool({ name: 'spending_status', arguments: {} })
+    expect(out.isError).toBe(true)
+    expect(textOf(out)).toContain('BEAMSWAP_WALLET_KEY')
+    expect(calls).toEqual([])
+  })
+
+  it('offers no tool that resumes paid calls', async () => {
+    const client = await connectApi(
+      createApiClient({ baseUrl: 'http://api', fetchImpl: async () => Response.json({}) }),
+    )
+    const { tools } = await client.listTools()
+    expect(tools.some((tool) => /resume|unpause/i.test(tool.name))).toBe(false)
+    expect(tools.find((t) => t.name === 'spending_pause')?.description).toContain('Free.')
   })
 })
