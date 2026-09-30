@@ -25,7 +25,15 @@ export interface ApiClientOptions {
   /** Explicit local configuration for a trusted self-hosted treasury, never a tool argument. */
   treasury?: string
   recoveryStore?: RecoveryStore
+  /**
+   * Task label sent as `x-beamswap-task` on every request (`BEAMSWAP_TASK`), so the wallet owner's
+   * task budgets and receipts on beamswap.io can tell this agent's work apart.
+   */
+  task?: string
 }
+
+/** Same rule the API applies to `x-beamswap-task`. */
+export const TASK_PATTERN = /^[A-Za-z0-9 ._:-]{1,64}$/
 
 export interface ApiResponse {
   status: number
@@ -62,6 +70,10 @@ export function createApiClient(opts: ApiClientOptions) {
   const treasury = opts.treasury ?? TREASURY
   if (!/^0x[\da-f]{40}$/i.test(treasury)) throw new Error('Invalid payment treasury')
   const recovery = opts.recoveryStore ?? fileRecoveryStore()
+  const task = opts.task?.trim() || undefined
+  if (task && !TASK_PATTERN.test(task)) {
+    throw new Error('BEAMSWAP_TASK must be 1 to 64 characters: letters, digits, spaces, . _ : or -')
+  }
   /**
    * One request, however it is shaped. The session token is added here rather than at each call
    * site so a route added later cannot be the one that forgets to spend the free quota, and the
@@ -72,6 +84,7 @@ export function createApiClient(opts: ApiClientOptions) {
     if (target.origin !== baseUrl.origin) throw new Error('Unexpected API origin')
     const headers = { ...init.headers }
     if (sessionToken) headers.authorization = `Bearer ${sessionToken}`
+    if (task) headers['x-beamswap-task'] = task
     const method = init.method ?? 'GET'
     const ceiling = priceCeiling(
       method,
@@ -181,42 +194,78 @@ export function createApiClient(opts: ApiClientOptions) {
     }
   }
 
-  return {
-    hasWallet,
-    /** Signs the canonical session message and retains the returned JWT only in this process. */
-    async createSession(): Promise<ApiResponse> {
+  /** Signs the canonical session message and retains the returned JWT only in this process. */
+  async function createSession(): Promise<ApiResponse> {
+    if (!account) {
+      return {
+        status: 400,
+        body: { error: 'BEAMSWAP_WALLET_KEY is required to create a session' },
+        paymentTx: null,
+      }
+    }
+    const issuedAt = Math.floor(Date.now() / 1_000)
+    const signature = await account.signTypedData(buildSessionMessage(account.address, issuedAt))
+    const response = await send(`${base}/v1/session`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ address: account.address, issuedAt, signature }),
+    })
+    if (response.status >= 200 && response.status < 300) {
+      const body = response.body as { token?: unknown; expiresAt?: unknown } | null
+      if (!body || typeof body.token !== 'string' || typeof body.expiresAt !== 'number') {
+        return {
+          status: 502,
+          body: { error: 'Session endpoint returned an invalid response' },
+          paymentTx: null,
+        }
+      }
+      sessionToken = body.token
+      return {
+        status: response.status,
+        body: { active: true, address: account.address, expiresAt: body.expiresAt },
+        paymentTx: null,
+      }
+    }
+    return response
+  }
+
+  /**
+   * A free, wallet-scoped call (spending controls). Signs a session from the configured key when
+   * none is held, and once more when the held one has expired. These routes never ask for payment.
+   */
+  async function sessionCall(method: 'GET' | 'POST', path: string): Promise<ApiResponse> {
+    if (!sessionToken) {
       if (!account) {
         return {
           status: 400,
-          body: { error: 'BEAMSWAP_WALLET_KEY is required to create a session' },
+          body: {
+            error: 'Set BEAMSWAP_WALLET_KEY (or BEAMSWAP_SESSION_TOKEN) to use spending controls',
+          },
           paymentTx: null,
         }
       }
-      const issuedAt = Math.floor(Date.now() / 1_000)
-      const signature = await account.signTypedData(buildSessionMessage(account.address, issuedAt))
-      const response = await send(`${base}/v1/session`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ address: account.address, issuedAt, signature }),
-      })
-      if (response.status >= 200 && response.status < 300) {
-        const body = response.body as { token?: unknown; expiresAt?: unknown } | null
-        if (!body || typeof body.token !== 'string' || typeof body.expiresAt !== 'number') {
-          return {
-            status: 502,
-            body: { error: 'Session endpoint returned an invalid response' },
-            paymentTx: null,
-          }
-        }
-        sessionToken = body.token
-        return {
-          status: response.status,
-          body: { active: true, address: account.address, expiresAt: body.expiresAt },
-          paymentTx: null,
-        }
-      }
-      return response
-    },
+      const created = await createSession()
+      if (created.status < 200 || created.status >= 300) return created
+    }
+    const call = () =>
+      method === 'GET'
+        ? send(`${base}${path}`)
+        : send(`${base}${path}`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: '{}',
+          })
+    const first = await call()
+    if (first.status !== 401 || !account) return first
+    const renewed = await createSession()
+    if (renewed.status < 200 || renewed.status >= 300) return renewed
+    return call()
+  }
+
+  return {
+    hasWallet,
+    createSession,
+    sessionCall,
     async get(path: string, query: Record<string, string> = {}): Promise<ApiResponse> {
       const qs = new URLSearchParams(query).toString()
       return send(`${base}${path}${qs ? `?${qs}` : ''}`)

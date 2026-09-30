@@ -1,0 +1,13 @@
+# Changelog
+
+## 0.2.0
+
+- Add `spending_status` and `spending_pause` for the wallet's spending controls.
+- Add `BEAMSWAP_TASK`, sent as `x-beamswap-task` so task budgets and receipts can tell agents apart.
+- Add free `limit_order_prepare`, `order_status`, `automation_preview`, `crosschain_quote` and `crosschain_status`. They return data and a review link on app.beamswap.io, never calldata to sign.
+- Add the Agent Vault tools `vault_status`, `vault_trade`, `vault_limit_order`, `vault_cancel`, `vault_pause` and `vault_activity`, enabled when `BEAMSWAP_VAULT_URL` is set. They trade inside on-chain limits and never withdraw.
+- The vault link is treated as a secret and is never logged or echoed.
+
+## 0.1.0
+
+- First public release.
