@@ -141,6 +141,28 @@ describe('metamaskSigner', () => {
     await expect(signer.signMessage('hi')).rejects.toThrow('The mm command failed: Not logged in')
   })
 
+  it("surfaces the CLI's own JSON error message", async () => {
+    const json = JSON.stringify(
+      {
+        ok: false,
+        error: { code: 'AUTH_FAILED', message: 'No CLI refresh token available — run `mm login`.' },
+      },
+      null,
+      2,
+    )
+    const failing = Object.assign(new Error('Command failed: mm secret-args'), {
+      code: 1,
+      stdout: json,
+      stderr: json,
+    })
+    const signer = await metamaskSigner({ exec: stub(() => Promise.reject(failing)).exec })
+    const error = (await signer.signMessage('hi').catch((e: Error) => e)) as Error
+    expect(error.message).toBe(
+      'The mm command failed: No CLI refresh token available — run `mm login`.',
+    )
+    expect(error.message).not.toContain('secret-args')
+  })
+
   it('passes the payload as one argv element, with bigints as decimal strings', async () => {
     const { exec, calls } = stub(JSON.stringify({ signature: sig }))
     const signer = await metamaskSigner({ exec, bin: 'mm', chainId: 8453 })

@@ -58,7 +58,7 @@ const defaultExec: ExecFn = (file, args, opts) =>
       args,
       { ...opts, windowsHide: true, encoding: 'utf8' },
       (error, stdout, stderr) => {
-        if (error) return fail(Object.assign(error, { stderr }))
+        if (error) return fail(Object.assign(error, { stdout, stderr }))
         done({ stdout })
       },
     )
@@ -173,9 +173,17 @@ export async function metamaskSigner(opts: MetamaskSignerOptions = {}): Promise<
           'MetaMask did not answer in time. Approve the request in MetaMask, then retry.',
         )
       }
-      // Never the error message: Node puts the full command line, payload included, in it.
-      const detail =
-        typeof e.stderr === 'string' ? (e.stderr.trim().split('\n')[0] ?? '').slice(0, 200) : ''
+      // Never the error message: Node puts the full command line, payload included, in it. The CLI
+      // reports its own failures as `{ ok: false, error: { message } }`, so prefer that text.
+      const stdout = (error as { stdout?: unknown }).stdout
+      const reported = [stdout, e.stderr]
+        .map((s) => (typeof s === 'string' ? field(parseOutput(s), 'error') : undefined))
+        .map((err) => asObject(err)?.message)
+        .find((m): m is string => typeof m === 'string' && m.length > 0)
+      const detail = (
+        reported ??
+        (typeof e.stderr === 'string' ? (e.stderr.trim().split('\n')[0] ?? '') : '')
+      ).slice(0, 200)
       throw new SignerError(`The mm command failed${detail ? `: ${detail}` : ''}`)
     }
   }
