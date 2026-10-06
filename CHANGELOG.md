@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+- Add MetaMask Agent Wallet support: `BEAMSWAP_SIGNER=metamask` signs API payments, sign-in and vault intents through the `mm` CLI instead of a private key. `BEAMSWAP_MM_BIN` points at the CLI when it is not on `PATH`.
+- Add `BEAMSWAP_VAULT_ADDRESS`: the six `vault_*` tools for an Agent Vault whose agent is your own wallet, signed locally and relayed by Beamswap.
+- `BEAMSWAP_SIGNER` and `BEAMSWAP_WALLET_KEY` are mutually exclusive, as are `BEAMSWAP_VAULT_URL` and `BEAMSWAP_VAULT_ADDRESS`.
+- Add the `beamswap` agent skill under `skills/`.
+
 ## 0.2.0
 
 - Add `spending_status` and `spending_pause` for the wallet's spending controls.

@@ -4,7 +4,8 @@
  * the six vault tools appear here and forward to that URL. The vault, its rules and the hosted agent
  * key live on the Beamswap side; this package only carries the request, so nothing here can sign,
  * withdraw, change rules or resume a paused vault. The URL is a secret: it is never logged or
- * echoed in a result.
+ * echoed in a result. A vault whose agent is your own wallet has no URL: `vault-local.ts` implements
+ * the same `VaultRemote` for it, so both register these exact tools through `registerVaultTools`.
  */
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'

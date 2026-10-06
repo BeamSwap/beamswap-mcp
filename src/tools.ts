@@ -39,7 +39,7 @@ function result(r: ApiResponse, hasWallet: boolean) {
     if (r.status === 402) {
       payload.hint = hasWallet
         ? 'No payment was signed for this response. The endpoint requires a supported, policy-approved Base USDC payment.'
-        : 'BEAMSWAP_WALLET_KEY is not set, so the call was never paid for. Set it to the 0x private key of a wallet holding USDC on Base.'
+        : 'No wallet is configured, so the call was never paid for. Set BEAMSWAP_WALLET_KEY (the 0x private key of a wallet holding USDC on Base) or BEAMSWAP_SIGNER=metamask.'
     }
     return json(payload, true)
   }

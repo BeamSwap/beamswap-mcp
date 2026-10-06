@@ -11,10 +11,10 @@ This repository contains the **local stdio server**. The hosted server lives in 
 Install [Node.js](https://nodejs.org/) 22.13 or newer. The npm release runs without cloning:
 
 ```sh
-npx -y @beamswapio/mcp@0.2.0
+npx -y @beamswapio/mcp@0.3.0
 ```
 
-Set your AI client's command to `npx` and arguments to `["-y", "@beamswapio/mcp@0.2.0"]`. Pinning the version keeps updates deliberate. On Windows, clients that require an executable may need `npx.cmd`; the source-based `node` command below also works.
+Set your AI client's command to `npx` and arguments to `["-y", "@beamswapio/mcp@0.3.0"]`. Pinning the version keeps updates deliberate. On Windows, clients that require an executable may need `npx.cmd`; the source-based `node` command below also works.
 
 ### Build from source
 
@@ -36,7 +36,7 @@ Set your AI client's server command to `node`, with the **absolute path** to `di
   "mcpServers": {
     "beamswap": {
       "command": "npx",
-      "args": ["-y", "@beamswapio/mcp@0.2.0"]
+      "args": ["-y", "@beamswapio/mcp@0.3.0"]
     }
   }
 }
@@ -52,16 +52,46 @@ The local server automatically signs API payments when a key is configured. Each
 
 | Setting | Purpose |
 | --- | --- |
-| `BEAMSWAP_WALLET_KEY` | Optional for connection/free lookups; required for local paid calls and wallet sign-in. |
+| `BEAMSWAP_WALLET_KEY` | Optional for connection/free lookups; required for local paid calls and wallet sign-in, unless you use `BEAMSWAP_SIGNER`. |
+| `BEAMSWAP_SIGNER` | Set to `metamask` to sign with [MetaMask Agent Wallet](#metamask-agent-wallet) instead of a private key. Cannot be combined with `BEAMSWAP_WALLET_KEY`. |
+| `BEAMSWAP_MM_BIN` | Optional path to the `mm` command (or its JS entry) when it is not on `PATH`. Used with `BEAMSWAP_SIGNER=metamask`. |
 | `BEAMSWAP_API_URL` | Defaults to `https://api.beamswap.io`. Change only to an API you trust. |
 | `BEAMSWAP_SESSION_TOKEN` | Optional existing wallet session. `session_create` can create one and retain it in process memory. |
 | `BEAMSWAP_TASK` | Optional task label (1 to 64 letters, digits, spaces or . _ : -) sent as `x-beamswap-task`, so your task budgets and receipts on beamswap.io can tell this agent's work apart. |
 | `BEAMSWAP_VAULT_URL` | Optional private vault link from [app.beamswap.io/agent](https://app.beamswap.io/agent). Adds the six `vault_*` tools. Treat it as a secret. |
+| `BEAMSWAP_VAULT_ADDRESS` | Optional `0x` address of an Agent Vault whose agent is your own wallet (`BEAMSWAP_WALLET_KEY` or the MetaMask account). Adds the same six `vault_*` tools. Cannot be combined with `BEAMSWAP_VAULT_URL`. |
 | `BEAMSWAP_PAYMENT_TREASURY` | Advanced self-hosting only. Defaults to Beamswap's treasury. Changing the API URL does not change this payment recipient. |
 
 If a signed request times out, returns an error or lacks a valid receipt, the tool returns `paymentOutcomeUnknown`, `doNotRetry` and a recovery ID. Further paid calls for that wallet are blocked across restarts. See [payment recovery](docs/payment-recovery.md) before taking any action. Never ask the AI to create a replacement for an uncertain request.
 
 The API charges USDC. The facilitator pays gas for API settlements. Sending swap, staking, funding or claim transactions separately requires ETH on Base. This server returns transaction instructions and **does not broadcast those transactions**.
+
+## MetaMask Agent Wallet
+
+[MetaMask Agent Wallet](https://www.npmjs.com/package/@metamask/agent-wallet) (the `mm` command) keeps the key in MetaMask's secure enclave or a local mnemonic, so no private key sits in your MCP config. Install it, create or select a wallet with `mm`, then:
+
+```json
+{
+  "mcpServers": {
+    "beamswap": {
+      "command": "npx",
+      "args": ["-y", "@beamswapio/mcp@0.3.0"],
+      "env": { "BEAMSWAP_SIGNER": "metamask" }
+    }
+  }
+}
+```
+
+- The server runs `mm wallet address --json` once at startup and asks `mm` to sign each payment, sign-in or vault intent with `--wait`. If your wallet needs 2FA, approve the request in MetaMask; the call waits up to 11 minutes. An unapproved request fails with `Approval pending in MetaMask (2FA)`, and you can retry.
+- Payments keep every local safety rule: the per-route price ceiling, the pinned Base USDC treasury, one signature per request and the recovery lock. The wallet needs USDC on Base.
+- On Windows the `mm.cmd` launcher cannot be started without a shell, so the server reads the JavaScript entry out of it and runs that with Node. If that fails, set `BEAMSWAP_MM_BIN` to the `mm` executable or its `.js` entry.
+- Only ECDSA signatures are accepted, because the Beamswap API and vaults verify ECDSA.
+
+### Vault whose agent is your own wallet
+
+An [Agent Vault](https://app.beamswap.io/agent) can name any address as its agent. If that address is your `mm` wallet (`mm wallet address`) or your `BEAMSWAP_WALLET_KEY` wallet, set `BEAMSWAP_VAULT_ADDRESS` to the vault contract. The six `vault_*` tools then work without a private URL: the server proves it is the agent with a signed challenge (reused for about five minutes, so one 2FA approval covers several reads), signs each trade, cancel or pause as an `AgentIntent`, and Beamswap's relayer submits it and pays the gas. The vault contract enforces your limits on chain; the agent can never withdraw, change rules or resume a paused vault.
+
+An agent skill for this setup is in [`skills/beamswap`](skills/beamswap/SKILL.md).
 
 ## Try a prompt
 
