@@ -1,11 +1,14 @@
 import { mkdtemp, rm, readFile, readdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { recoverTypedDataAddress } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { describe, expect, it } from 'vitest'
 import { createApiClient } from './client'
 import { NETWORK, TREASURY, USDC } from './payment-policy'
 import { fileRecoveryStore, memoryRecoveryStore, type RecoveryStore } from './payment-recovery'
+import { buildSessionMessage } from './session'
+import { localKeySigner, type WalletSigner } from './signer'
 
 const walletKey = `0x${'11'.repeat(32)}` as const
 const payer = privateKeyToAccount(walletKey).address
@@ -14,8 +17,24 @@ const tx = `0x${'ab'.repeat(32)}`
 const baseUrl = 'https://mock.beamswap.test'
 const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64')
 
-function harness(
+/** A signer that is not `localKeySigner`: same key underneath, but it records how it was called. */
+function fakeSigner() {
+  const inner = localKeySigner(walletKey)
+  const intents: Array<string | undefined> = []
+  const signer: WalletSigner = {
+    address: inner.address,
+    signMessage: inner.signMessage,
+    signTypedData(data, intent) {
+      intents.push(intent)
+      return inner.signTypedData(data, intent)
+    },
+  }
+  return { signer, intents }
+}
+
+function makeHarness(
   options: {
+    signer?: WalletSigner
     requirement?: Record<string, unknown>
     recoveryStore?: RecoveryStore
     outcome?: 'lost' | '500' | '402' | 'no-receipt' | 'bad-body' | 'wrong-receipt'
@@ -30,7 +49,7 @@ function harness(
   }> = []
   const api = createApiClient({
     baseUrl,
-    walletKey,
+    ...(options.signer ? { signer: options.signer } : { walletKey }),
     recoveryStore: options.recoveryStore ?? memoryRecoveryStore(),
     fetchImpl: async (input, init) => {
       const req = new Request(input, init)
@@ -83,7 +102,16 @@ function harness(
   return { api, calls, payloads }
 }
 
-describe('payment policy through the real x402 signer', () => {
+const harness = makeHarness
+
+describe.each([
+  ['a local key', () => localKeySigner(walletKey)],
+  ['a fake signer', () => fakeSigner().signer],
+] as const)('payment policy through the real x402 signer with %s', (_label, newSigner) => {
+  const signer = newSigner()
+  const harness = (options: Parameters<typeof makeHarness>[0] = {}) =>
+    makeHarness({ ...options, signer })
+
   it('pays exactly the discounted Base USDC price once, to the pinned treasury', async () => {
     const h = harness({ amount: '3000' })
     const result = await h.api.get(`/v1/token/${address}`)
@@ -132,6 +160,39 @@ describe('payment policy through the real x402 signer', () => {
     const invalid = harness()
     await invalid.api.post('/v1/watch', { items: [{}], days: 1.5 })
     expect(invalid.payloads).toHaveLength(0)
+  })
+})
+
+describe('signer wiring', () => {
+  it('asks the signer once, with a human reason naming the exact price', async () => {
+    const { signer, intents } = fakeSigner()
+    const h = makeHarness({ amount: '3000', signer })
+    expect((await h.api.get(`/v1/token/${address}`)).status).toBe(200)
+    expect(intents).toEqual(['Beamswap API payment of 0.003 USDC'])
+    expect(h.api.signer).toBe(signer)
+  })
+})
+
+describe.each([
+  ['a local key', () => ({ walletKey })],
+  ['a fake signer', () => ({ signer: fakeSigner().signer })],
+] as const)('session sign-in with %s', (_label, wallet) => {
+  it('signs the canonical session message as the wallet address', async () => {
+    const bodies: Array<{ address: string; issuedAt: number; signature: `0x${string}` }> = []
+    const api = createApiClient({
+      baseUrl,
+      ...wallet(),
+      fetchImpl: async (_input, init) => {
+        bodies.push(JSON.parse(String(init?.body)))
+        return Response.json({ token: 'jwt', expiresAt: 2_000_000_000 })
+      },
+    })
+    expect((await api.createSession()).body).toMatchObject({ active: true, address: payer })
+    const { address: from, issuedAt, signature } = bodies[0]!
+    expect(from).toBe(payer)
+    expect(
+      await recoverTypedDataAddress({ ...buildSessionMessage(payer, issuedAt), signature }),
+    ).toBe(payer)
   })
 })
 

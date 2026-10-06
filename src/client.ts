@@ -4,8 +4,7 @@
  */
 import { ExactEvmScheme, type ClientEvmSigner } from '@x402/evm'
 import { decodePaymentResponseHeader, x402HTTPClient, x402Client } from '@x402/fetch'
-import type { Hex } from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
+import { formatUnits, type Hex } from 'viem'
 import { buildSessionMessage } from './session'
 import {
   assertPaymentData,
@@ -15,9 +14,13 @@ import {
   TREASURY,
 } from './payment-policy'
 import { fileRecoveryStore, recoveryRecord, type RecoveryStore } from './payment-recovery'
+import { localKeySigner, type TypedData, type WalletSigner } from './signer'
 
 export interface ApiClientOptions {
   baseUrl: string
+  /** Signs payments and sessions: a local key or MetaMask Agent Wallet. Wins over `walletKey`. */
+  signer?: WalletSigner
+  /** Kept for callers that only have a raw key; wrapped with `localKeySigner`. */
   walletKey?: Hex
   sessionToken?: string
   /** Injected in tests; defaults to the global `fetch`. */
@@ -61,10 +64,11 @@ export function createApiClient(opts: ApiClientOptions) {
   ) {
     throw new Error('BEAMSWAP_API_URL must be an HTTPS origin (HTTP allowed only on loopback)')
   }
-  // A missing *or blank* BEAMSWAP_WALLET_KEY means "no wallet": every paid route then answers 402
-  // and the caller has to be told why, so the decision is published as `hasWallet`.
-  const hasWallet = Boolean(opts.walletKey)
-  const account = opts.walletKey ? privateKeyToAccount(opts.walletKey) : undefined
+  // A missing *or blank* BEAMSWAP_WALLET_KEY with no signer means "no wallet": every paid route
+  // then answers 402 and the caller has to be told why, so the decision is published as `hasWallet`.
+  const account: WalletSigner | undefined =
+    opts.signer ?? (opts.walletKey ? localKeySigner(opts.walletKey) : undefined)
+  const hasWallet = Boolean(account)
   let sessionToken = opts.sessionToken
   const f = opts.fetchImpl ?? fetch
   const treasury = opts.treasury ?? TREASURY
@@ -137,7 +141,10 @@ export function createApiClient(opts: ApiClientOptions) {
           lockedId = record.id
           // Persist before signing. A crash at any point must fail closed.
           signed = true
-          return account!.signTypedData(data as Parameters<typeof account.signTypedData>[0])
+          return account!.signTypedData(
+            data as TypedData,
+            `Beamswap API payment of ${formatUnits(exactAmount, 6)} USDC`,
+          )
         },
       }
       const client = new x402Client()
@@ -199,12 +206,17 @@ export function createApiClient(opts: ApiClientOptions) {
     if (!account) {
       return {
         status: 400,
-        body: { error: 'BEAMSWAP_WALLET_KEY is required to create a session' },
+        body: {
+          error: 'BEAMSWAP_WALLET_KEY or BEAMSWAP_SIGNER=metamask is required to create a session',
+        },
         paymentTx: null,
       }
     }
     const issuedAt = Math.floor(Date.now() / 1_000)
-    const signature = await account.signTypedData(buildSessionMessage(account.address, issuedAt))
+    const signature = await account.signTypedData(
+      buildSessionMessage(account.address, issuedAt),
+      'Beamswap API sign-in',
+    )
     const response = await send(`${base}/v1/session`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -239,7 +251,8 @@ export function createApiClient(opts: ApiClientOptions) {
         return {
           status: 400,
           body: {
-            error: 'Set BEAMSWAP_WALLET_KEY (or BEAMSWAP_SESSION_TOKEN) to use spending controls',
+            error:
+              'Set BEAMSWAP_WALLET_KEY, BEAMSWAP_SIGNER=metamask or BEAMSWAP_SESSION_TOKEN to use spending controls',
           },
           paymentTx: null,
         }
@@ -264,6 +277,8 @@ export function createApiClient(opts: ApiClientOptions) {
 
   return {
     hasWallet,
+    /** The configured signer, for tools that sign something other than an API payment. */
+    signer: account,
     createSession,
     sessionCall,
     async get(path: string, query: Record<string, string> = {}): Promise<ApiResponse> {

@@ -303,14 +303,14 @@ describe('mcp tools', () => {
     })
   })
 
-  it('tells the operator when a 402 arrived because no wallet key is set', async () => {
+  it('tells the operator when a 402 arrived because no wallet is configured', async () => {
     const out = await quoteAgainst(() =>
       Response.json({ accepts: [{ scheme: 'exact', price: '$0.005' }] }, { status: 402 }),
     )
     expect(out.isError).toBe(true)
     const payload = JSON.parse(textOf(out))
     expect(payload.status).toBe(402)
-    expect(payload.hint).toContain('BEAMSWAP_WALLET_KEY is not set')
+    expect(payload.hint).toContain('No wallet is configured')
     expect(payload.error).toEqual({ accepts: [{ scheme: 'exact', price: '$0.005' }] })
   })
 
@@ -319,6 +319,7 @@ describe('mcp tools', () => {
     // through a stand-in client instead of a real key.
     const api: ApiClient = {
       hasWallet: true,
+      signer: undefined,
       createSession: async () => ({ status: 200, body: {}, paymentTx: null }),
       sessionCall: async () => ({ status: 200, body: {}, paymentTx: null }),
       get: async () => ({ status: 402, body: { accepts: [] }, paymentTx: null }),
