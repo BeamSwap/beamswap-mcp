@@ -11,10 +11,10 @@ This repository contains the **local stdio server**. The hosted server lives in 
 Install [Node.js](https://nodejs.org/) 22.13 or newer. The npm release runs without cloning:
 
 ```sh
-npx -y @beamswapio/mcp@0.2.0
+npx -y @beamswapio/mcp@0.3.0
 ```
 
-Set your AI client's command to `npx` and arguments to `["-y", "@beamswapio/mcp@0.2.0"]`. Pinning the version keeps updates deliberate. On Windows, clients that require an executable may need `npx.cmd`; the source-based `node` command below also works.
+Set your AI client's command to `npx` and arguments to `["-y", "@beamswapio/mcp@0.3.0"]`. Pinning the version keeps updates deliberate. On Windows, clients that require an executable may need `npx.cmd`; the source-based `node` command below also works.
 
 ### Build from source
 
@@ -36,7 +36,7 @@ Set your AI client's server command to `node`, with the **absolute path** to `di
   "mcpServers": {
     "beamswap": {
       "command": "npx",
-      "args": ["-y", "@beamswapio/mcp@0.2.0"]
+      "args": ["-y", "@beamswapio/mcp@0.3.0"]
     }
   }
 }
