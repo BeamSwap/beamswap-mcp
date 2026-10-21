@@ -18,7 +18,9 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
+          # 22.23.4+ / 24.22.1+ distrust the compromised eMudhra CA certs; check-latest avoids a stale runner toolcache.
           node-version: 22
+          check-latest: true
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check

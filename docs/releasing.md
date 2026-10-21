@@ -23,4 +23,4 @@ There is deliberately no automatic npm-publish workflow. CI on Windows and Linux
 
 ## Staged updates
 
-The first `@beamswapio/mcp@0.1.0` release is public. For future authorized releases, prefer [npm staged publishing](https://docs.npmjs.com/staged-publishing/): use npm 11.15 or newer with Node 22.14 or newer, stage the checked tarball with `npm stage publish`, inspect it, then complete the owner's 2FA approval on npm. Staging alone does not make a version public. Verify the approved registry artifact before updating installation guides.
+The first `@beamswapio/mcp@0.1.0` release is public. For future authorized releases, prefer [npm staged publishing](https://docs.npmjs.com/staged-publishing/): use npm 11.15 or newer with Node 22.23.4 or newer, stage the checked tarball with `npm stage publish`, inspect it, then complete the owner's 2FA approval on npm. Staging alone does not make a version public. Verify the approved registry artifact before updating installation guides.
