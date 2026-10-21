@@ -8,7 +8,7 @@ This repository contains the **local stdio server**. The hosted server lives in 
 
 ## Run the local server
 
-Install [Node.js](https://nodejs.org/) 22.13 or newer. The npm release runs without cloning:
+Install [Node.js](https://nodejs.org/) 22.23.4 or newer (or 24.22.1+). The npm release runs without cloning:
 
 ```sh
 npx -y @beamswapio/mcp@0.3.0
